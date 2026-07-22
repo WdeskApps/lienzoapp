@@ -158,7 +158,17 @@
 
     <button id="undo-btn" title="Deshacer (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
     <button id="delete-btn" title="Borrar selección"><i class="fa-solid fa-trash"></i></button>
-    <button id="export-btn" title="Exportar a PNG"><i class="fa-solid fa-download"></i></button>
+
+    <div class="dock-group" id="file-group">
+      <button id="file-btn" title="Guardar / cargar"><i class="fa-solid fa-floppy-disk"></i></button>
+      <div class="popover file-popover" id="file-popover">
+        <button id="export-btn" title="Descargar imagen del pizarrón actual"><i class="fa-regular fa-image"></i><span>Exportar imagen PNG</span></button>
+        <button id="save-day-btn" title="Descargar este pizarrón como archivo"><i class="fa-regular fa-file"></i><span>Guardar este pizarrón</span></button>
+        <button id="save-all-btn" title="Descargar todos los días del calendario"><i class="fa-regular fa-calendar-days"></i><span>Guardar colección completa</span></button>
+        <button id="load-btn" title="Restaurar pizarrones desde un archivo"><i class="fa-regular fa-folder-open"></i><span>Cargar archivo…</span></button>
+      </div>
+      <input type="file" id="import-input" accept=".json,application/json" style="display:none">
+    </div>
   </div>
 
   <!-- Modal de bienvenida -->

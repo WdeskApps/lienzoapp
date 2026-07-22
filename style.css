@@ -369,12 +369,16 @@ body.mode-paint #links-layer .link-hit { pointer-events: none !important; }
 .popover .swatch:hover { transform: scale(1.12); }
 
 .tag-popover button { font-size: 20px; }
-.theme-popover {
+.theme-popover,
+.file-popover {
   flex-direction: column;
-  width: 178px;
   align-items: stretch;
 }
-.theme-popover button {
+.theme-popover { width: 178px; }
+.file-popover { width: 246px; }
+.file-popover button span { white-space: nowrap; }
+.theme-popover button,
+.file-popover button {
   width: 100%;
   height: 40px;
   display: flex;
@@ -384,8 +388,10 @@ body.mode-paint #links-layer .link-hit { pointer-events: none !important; }
   padding: 0 12px;
   font-size: 14px;
 }
-.theme-popover button i { width: 18px; text-align: center; font-size: 14px; }
+.theme-popover button i,
+.file-popover button i { width: 18px; text-align: center; font-size: 14px; }
 .theme-popover button.active { background: rgba(29, 78, 216, 0.16); color: #1d4ed8; }
+.file-popover button { font-family: var(--font-ui); font-weight: 600; }
 /* Cada opción se muestra con la tipografía de su propio tema */
 .theme-popover button[data-app-theme="sketch"] { font-family: 'Kalam', cursive; font-weight: 700; }
 .theme-popover button[data-app-theme="pro"] { font-family: 'Inter', 'Segoe UI', sans-serif; font-weight: 600; }

@@ -1903,6 +1903,112 @@ async function exportPNG() {
 }
 
 /* =========================================================
+   Guardar / cargar archivos (.json)
+   ========================================================= */
+const FILE_FORMAT = 'mindmapper';
+
+function downloadJSON(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportDayFile() {
+  saveLocal();
+  const days = {};
+  days[viewDayKey] = JSON.parse(snapshot());
+  downloadJSON(
+    { app: FILE_FORMAT, version: 1, exportedAt: new Date().toISOString(), days },
+    'pizarra-' + viewDayKey + '.json'
+  );
+}
+
+function exportAllFile() {
+  saveLocal();
+  const days = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(DAY_PREFIX)) {
+      try { days[key.slice(DAY_PREFIX.length)] = JSON.parse(localStorage.getItem(key)); }
+      catch (e) { /* día corrupto: se omite */ }
+    }
+  }
+  downloadJSON(
+    { app: FILE_FORMAT, version: 1, exportedAt: new Date().toISOString(), days },
+    'pizarras-coleccion-' + todayKey() + '.json'
+  );
+}
+
+function validDayKey(k) { return /^\d{4}-\d{2}-\d{2}$/.test(k); }
+
+function normalizeBoard(b) {
+  if (!b || typeof b !== 'object') return null;
+  return {
+    nodes: Array.isArray(b.nodes) ? b.nodes : [],
+    links: Array.isArray(b.links) ? b.links : [],
+    strokes: Array.isArray(b.strokes) ? b.strokes : [],
+    doodles: Array.isArray(b.doodles) ? b.doodles : [],
+    images: Array.isArray(b.images) ? b.images : []
+  };
+}
+
+function boardEmpty(b) {
+  return !b.nodes.length && !b.links.length && !b.strokes.length && !b.doodles.length && !b.images.length;
+}
+
+function importFromFile(file) {
+  const reader = new FileReader();
+  reader.onerror = () => alert('No se pudo leer el archivo.');
+  reader.onload = () => {
+    let data;
+    try { data = JSON.parse(reader.result); } catch (e) { data = null; }
+    if (!data || data.app !== FILE_FORMAT || !data.days || typeof data.days !== 'object') {
+      alert('El archivo no es un respaldo válido de esta aplicación.');
+      return;
+    }
+    const entries = Object.entries(data.days)
+      .filter(([k, v]) => validDayKey(k) && normalizeBoard(v));
+    if (!entries.length) { alert('El archivo no contiene pizarrones.'); return; }
+
+    const conflicts = entries.filter(([k]) => dayHasData(k)).map(([k]) => k);
+    let overwrite = true;
+    if (conflicts.length) {
+      overwrite = confirm(
+        conflicts.length + ' día(s) del archivo ya tienen contenido en este navegador (' +
+        conflicts.slice(0, 5).join(', ') + (conflicts.length > 5 ? '…' : '') + ').\n\n' +
+        'Aceptar: reemplazarlos con los del archivo.\n' +
+        'Cancelar: conservar los actuales e importar solo los días nuevos.'
+      );
+    }
+
+    let imported = 0, skipped = 0, quotaHit = false;
+    for (const [k, v] of entries) {
+      if (dayHasData(k) && !overwrite) { skipped++; continue; }
+      const board = normalizeBoard(v);
+      try {
+        if (boardEmpty(board)) localStorage.removeItem(DAY_PREFIX + k);
+        else localStorage.setItem(DAY_PREFIX + k, JSON.stringify(board));
+        imported++;
+      } catch (e) { quotaHit = true; break; }
+    }
+
+    historyStack = [];
+    loadBoard(viewDayKey);
+    updateDayChip();
+    render();
+
+    let msg = 'Se importaron ' + imported + ' pizarrón(es).';
+    if (skipped) msg += ' Se conservaron ' + skipped + ' día(s) existentes.';
+    if (quotaHit) msg += ' Atención: el almacenamiento se llenó antes de terminar.';
+    alert(msg);
+  };
+  reader.readAsText(file);
+}
+
+/* =========================================================
    Dock — interacción
    ========================================================= */
 const PAINT_TOOLS = ['draw', 'shape', 'erase'];
@@ -2109,7 +2215,26 @@ function initDock() {
 
   document.getElementById('undo-btn').addEventListener('click', e => { e.stopPropagation(); undo(); });
   document.getElementById('delete-btn').addEventListener('click', e => { e.stopPropagation(); deleteSelection(); });
-  document.getElementById('export-btn').addEventListener('click', e => { e.stopPropagation(); exportPNG(); });
+
+  // Guardar / cargar
+  const filePop = document.getElementById('file-popover');
+  document.getElementById('file-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    togglePopover(filePop);
+  });
+  document.getElementById('export-btn').addEventListener('click', e => { e.stopPropagation(); closePopovers(); exportPNG(); });
+  document.getElementById('save-day-btn').addEventListener('click', e => { e.stopPropagation(); closePopovers(); exportDayFile(); });
+  document.getElementById('save-all-btn').addEventListener('click', e => { e.stopPropagation(); closePopovers(); exportAllFile(); });
+  const importInput = document.getElementById('import-input');
+  document.getElementById('load-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    closePopovers();
+    importInput.click();
+  });
+  importInput.addEventListener('change', () => {
+    if (importInput.files && importInput.files[0]) importFromFile(importInput.files[0]);
+    importInput.value = '';
+  });
 
   const searchInput = document.getElementById('search-input');
   searchInput.addEventListener('input', () => runSearch(searchInput.value));
