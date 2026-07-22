@@ -117,6 +117,9 @@ html, body {
   position: fixed;
   inset: 0;
   overflow: hidden;
+  /* Los gestos táctiles los maneja la app (pan con un dedo, pinch con dos);
+     sin esto el navegador intenta hacer scroll/zoom de página */
+  touch-action: none;
 }
 
 /* ---------- Capa SVG ---------- */
@@ -834,3 +837,33 @@ body.mode-paint #links-layer .link-hit { pointer-events: none !important; }
   font-weight: 600;
 }
 .onboarding-actions .primary:hover { background: #1741b0; }
+
+/* ---------- Pantallas chicas (teléfonos) ---------- */
+@media (max-width: 640px) {
+  .dock {
+    bottom: 10px;
+    gap: 1px;
+    padding: 6px 8px;
+    max-width: 97vw;
+    border-radius: 18px;
+  }
+  .dock button {
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+  .dock-sep { margin: 0 1px; height: 20px; }
+  .popover { bottom: 48px; }
+  .popover button { width: 34px; height: 34px; font-size: 15px; }
+  .shape-popover, .figure-popover { width: 160px; }
+
+  #top-left-ui { top: 10px; left: 10px; }
+  #day-chip { padding: 6px 10px; font-size: 12px; gap: 5px; }
+  #about-btn { width: 30px; height: 30px; font-size: 12px; }
+  #about-panel { width: min(264px, 88vw); }
+
+  #zoom-indicator { right: 10px; bottom: 10px; padding: 6px 10px; font-size: 12px; }
+  .search-panel { top: 10px; }
+  #tour-tip { width: min(240px, 80vw); }
+}

@@ -56,6 +56,7 @@ let editPreSnapshot = null;
 let draggingNode = null;
 let dragOffset = { x: 0, y: 0 };
 let panState = null;
+let pinchActive = false;   // gesto de dos dedos en curso (móvil/tablet)
 
 let view = { x: 0, y: 0, zoom: 1 };
 let viewDayKey = todayKey();
@@ -1195,6 +1196,7 @@ function onNodePointerDown(e, nodeId) {
   dragOffset.y = startWorld.y - node.y;
 
   function onMove(ev) {
+    if (pinchActive) return;
     const w = screenToWorld(ev.clientX, ev.clientY);
     draggingNode.x = w.x - dragOffset.x;
     draggingNode.y = w.y - dragOffset.y;
@@ -1215,6 +1217,7 @@ function startObjectDrag(e, obj, before) {
   const startWorld = screenToWorld(e.clientX, e.clientY);
   const offX = startWorld.x - obj.x, offY = startWorld.y - obj.y;
   function onMove(ev) {
+    if (pinchActive) return;
     const w = screenToWorld(ev.clientX, ev.clientY);
     obj.x = r1(w.x - offX);
     obj.y = r1(w.y - offY);
@@ -1270,6 +1273,7 @@ function startResize(e) {
   const startW = target.w, startH = target.h;
 
   function onMove(ev) {
+    if (pinchActive) return;
     const w = screenToWorld(ev.clientX, ev.clientY);
     const dw = w.x - startWorld.x, dh = w.y - startWorld.y;
     if (allowNegative) {
@@ -1613,8 +1617,10 @@ function startStroke(e) {
     temp.setAttribute('fill', 'none');
   }
   drawingsLayer.appendChild(temp);
+  let abortedByPinch = false;
 
   function onMove(ev) {
+    if (pinchActive) { abortedByPinch = true; return; }
     const c = screenToWorld(ev.clientX, ev.clientY);
     const dx = c.x - pen[0], dy = c.y - pen[1];
     const dist = Math.hypot(dx, dy);
@@ -1636,6 +1642,13 @@ function startStroke(e) {
   }
   function onUp() {
     temp.remove();
+    if (abortedByPinch || pinchActive) {
+      // El trazo era en realidad el inicio de un gesto de zoom: descartarlo
+      render();
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      return;
+    }
     if (pts.length > 1) {
       const canSnap = autoShapeOn && currentBrush !== 'spray';
       const rec = canSnap ? recognizeStroke(pts) : null;
@@ -1678,7 +1691,9 @@ function startFigureDrag(e) {
     };
   }
 
+  let abortedByPinch = false;
   function onMove(ev) {
+    if (pinchActive) { abortedByPinch = true; if (ghost) { ghost.remove(); ghost = null; } return; }
     const p = screenToWorld(ev.clientX, ev.clientY);
     if (ghost) ghost.remove();
     ghost = buildDoodleEl(ghostDoodle(p));
@@ -1687,6 +1702,12 @@ function startFigureDrag(e) {
   }
   function onUp(ev) {
     if (ghost) ghost.remove();
+    if (abortedByPinch || pinchActive) {
+      render();
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      return;
+    }
     const p = screenToWorld(ev.clientX, ev.clientY);
     const d = ghostDoodle(p);
     if (Math.abs(d.w) > 8 || Math.abs(d.h) > 8) {
@@ -1739,6 +1760,7 @@ function startErase(e) {
   if (any) render();
 
   function onMove(ev) {
+    if (pinchActive) return;
     if (eraseAt(screenToWorld(ev.clientX, ev.clientY))) { any = true; render(); }
   }
   function onUp() {
@@ -2519,7 +2541,56 @@ function initDock() {
    Eventos globales — lienzo (pan, zoom, dibujo)
    ========================================================= */
 function initCanvasEvents() {
+  /* ---- Pinch-zoom con dos dedos (móvil/tablet) ----
+     Se rastrean los toques a nivel de ventana para que el gesto funcione
+     aunque un dedo haya caído sobre un nodo o un trazo. Al entrar el
+     segundo dedo, las interacciones de un dedo se pausan o descartan. */
+  const touches = new Map();
+  let pinch = null;
+
+  function beginPinch() {
+    const [a, b] = [...touches.values()];
+    pinch = {
+      d0: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+      zoom0: view.zoom,
+      mid0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+      view0: { x: view.x, y: view.y }
+    };
+    pinchActive = true;
+    panState = null;
+  }
+  function doPinch() {
+    const [a, b] = [...touches.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const newZoom = Math.min(2.5, Math.max(0.2, pinch.zoom0 * (d / pinch.d0)));
+    // El punto del mundo bajo el centro del gesto sigue al centro actual
+    view.x = mid.x - (pinch.mid0.x - pinch.view0.x) * (newZoom / pinch.zoom0);
+    view.y = mid.y - (pinch.mid0.y - pinch.view0.y) * (newZoom / pinch.zoom0);
+    view.zoom = newZoom;
+    applyView();
+  }
+  window.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'touch') return;
+    if (e.target.closest && e.target.closest('.dock, .popover, #top-left-ui, #tour-tip, #search-panel, .onboarding-modal')) return;
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touches.size === 2) beginPinch();
+  }, true);
+  window.addEventListener('pointermove', e => {
+    if (!touches.has(e.pointerId)) return;
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && touches.size === 2) doPinch();
+  }, true);
+  function releaseTouch(e) {
+    touches.delete(e.pointerId);
+    if (pinch && touches.size < 2) { pinch = null; pinchActive = false; }
+  }
+  window.addEventListener('pointerup', releaseTouch, true);
+  window.addEventListener('pointercancel', releaseTouch, true);
+
   svgCanvas.addEventListener('pointerdown', e => {
+    // El segundo dedo (y siguientes) pertenece al gesto de pinch, no a las herramientas
+    if (e.pointerType === 'touch' && touches.size >= 2) return;
     if (e.button === 1) { startPan(e); return; }
     if (currentTool === 'draw') { startStroke(e); return; }
     if (currentTool === 'shape') { startFigureDrag(e); return; }
@@ -2537,7 +2608,7 @@ function initCanvasEvents() {
     window.addEventListener('pointerup', onPanUp);
   }
   function onPanMove(e) {
-    if (!panState) return;
+    if (!panState || pinchActive) return;
     const dx = e.clientX - panState.startX, dy = e.clientY - panState.startY;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) panState.moved = true;
     view.x = panState.startViewX + dx;
