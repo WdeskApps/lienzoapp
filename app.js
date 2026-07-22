@@ -1631,30 +1631,67 @@ function startErase(e) {
 /* =========================================================
    Pegar imágenes (PNG con alfa, GIF animado, etc.)
    ========================================================= */
-function addPastedImage(dataUrl, mime) {
+/* Toda imagen pegada se re-codifica liviana antes de guardarse:
+   JPEG para fotos, PNG solo si tiene transparencia, y los GIF
+   animados quedan congelados en su primer cuadro (drawImage toma
+   el frame inicial). Video y audio no se aceptan. */
+const PASTE_MAX_DIM = 1400;
+const PASTE_RETRY_DIM = 900;
+const PASTE_MAX_BYTES = 1500000; // ~1,5 MB como dataURL
+
+function drawScaled(img, nw, nh, maxDim, whiteBg) {
+  const scale = Math.min(1, maxDim / Math.max(nw, nh));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(nw * scale));
+  c.height = Math.max(1, Math.round(nh * scale));
+  const ctx = c.getContext('2d');
+  if (whiteBg) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height); }
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+
+function hasTransparency(canvas) {
+  const ctx = canvas.getContext('2d');
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  const totalPx = canvas.width * canvas.height;
+  const skip = Math.max(1, Math.floor(totalPx / 2000));
+  for (let p = 3; p < data.length; p += 4 * skip) {
+    if (data[p] < 250) return true;
+  }
+  return false;
+}
+
+function compressImage(img) {
+  const nw = img.naturalWidth || 300, nh = img.naturalHeight || 300;
+  let c = drawScaled(img, nw, nh, PASTE_MAX_DIM, false);
+  let url;
+  if (hasTransparency(c)) {
+    url = c.toDataURL('image/png');
+    let dim = PASTE_MAX_DIM;
+    while (url.length > PASTE_MAX_BYTES && dim > 400) {
+      dim = Math.round(dim * 0.7);
+      c = drawScaled(img, nw, nh, dim, false);
+      url = c.toDataURL('image/png');
+    }
+  } else {
+    c = drawScaled(img, nw, nh, PASTE_MAX_DIM, true);
+    url = c.toDataURL('image/jpeg', 0.82);
+    if (url.length > PASTE_MAX_BYTES) {
+      c = drawScaled(img, nw, nh, PASTE_RETRY_DIM, true);
+      url = c.toDataURL('image/jpeg', 0.75);
+    }
+  }
+  return { url, w: c.width, h: c.height };
+}
+
+function addPastedImage(dataUrl) {
   const probe = new Image();
   probe.onload = () => {
-    const isGif = mime === 'image/gif';
-    let finalUrl = dataUrl;
-    let nw = probe.naturalWidth || 300, nh = probe.naturalHeight || 300;
-
-    // Reducir imágenes estáticas enormes para no reventar localStorage.
-    // PNG conserva el canal alfa; los GIF nunca se re-codifican (perderían
-    // la animación).
-    if (!isGif && Math.max(nw, nh) > 1600) {
-      const scale = 1600 / Math.max(nw, nh);
-      const c = document.createElement('canvas');
-      c.width = Math.round(nw * scale);
-      c.height = Math.round(nh * scale);
-      c.getContext('2d').drawImage(probe, 0, 0, c.width, c.height);
-      finalUrl = c.toDataURL('image/png');
-      nw = c.width; nh = c.height;
-    }
-
+    const packed = compressImage(probe);
     const before = snapshot();
     const maxDim = 460;
-    const s = Math.min(1, maxDim / Math.max(nw, nh));
-    const w = r1(nw * s), h = r1(nh * s);
+    const s = Math.min(1, maxDim / Math.max(packed.w, packed.h));
+    const w = r1(packed.w * s), h = r1(packed.h * s);
     const center = screenToWorld(window.innerWidth / 2, window.innerHeight / 2);
     const id = genId();
     images.push({
@@ -1662,15 +1699,16 @@ function addPastedImage(dataUrl, mime) {
       x: r1(center.x - w / 2 + Math.random() * 40 - 20),
       y: r1(center.y - h / 2 + Math.random() * 40 - 20),
       w, h,
-      dataUrl: finalUrl,
-      isGif,
-      playing: isGif
+      dataUrl: packed.url,
+      isGif: false,
+      playing: false
     });
     commitIfChanged(before);
     saveLocal();
     selection = { type: 'image', id };
     render();
   };
+  probe.onerror = () => alert('No se pudo procesar la imagen pegada.');
   probe.src = dataUrl;
 }
 
@@ -1685,7 +1723,7 @@ function initPaste() {
         const file = item.getAsFile();
         if (!file) continue;
         const reader = new FileReader();
-        reader.onload = () => addPastedImage(reader.result, item.type);
+        reader.onload = () => addPastedImage(reader.result);
         reader.readAsDataURL(file);
         e.preventDefault();
         return;
