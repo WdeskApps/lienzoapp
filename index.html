@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindMapper — Pizarrón de Mapas Mentales</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Capa 1: Lienzo SVG infinito (pan/zoom) -->
+  <svg id="svg-canvas" xmlns="http://www.w3.org/2000/svg">
+    <defs id="static-defs"></defs>
+    <defs id="mask-defs"></defs>
+    <g id="world">
+      <g id="images-layer"></g>
+      <g id="links-layer"></g>
+      <g id="nodes-layer"></g>
+      <g id="drawings-layer"></g>
+    </g>
+  </svg>
+
+  <!-- Capa 2: Texto editable (Smart Text Engine) -->
+  <div id="text-layer"></div>
+
+  <!-- Capa 3: Selección, tiradores, colapso, etiquetas, badges GIF -->
+  <div id="ui-layer"></div>
+
+  <!-- Chip del día visible (calendario) -->
+  <div id="day-chip">
+    <i class="fa-regular fa-calendar"></i>
+    <span id="day-chip-label"></span>
+    <button id="day-chip-today" title="Volver al pizarrón de hoy">Hoy</button>
+  </div>
+
+  <!-- Indicador de zoom -->
+  <button id="zoom-indicator" title="Restablecer vista (100%)">100%</button>
+
+  <!-- Panel de búsqueda -->
+  <div class="popover search-panel" id="search-panel">
+    <input type="text" id="search-input" placeholder="Buscar nodos..." autocomplete="off">
+    <span id="search-count">0/0</span>
+    <button id="search-prev" title="Anterior"><i class="fa-solid fa-chevron-up"></i></button>
+    <button id="search-next" title="Siguiente"><i class="fa-solid fa-chevron-down"></i></button>
+    <button id="search-close" title="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <!-- Dock flotante -->
+  <div class="dock" id="dock">
+    <button data-tool="select" class="active" title="Seleccionar / Mover">
+      <i class="fa-solid fa-arrow-pointer"></i>
+    </button>
+
+    <div class="dock-group" id="add-node-group">
+      <button id="add-node-btn" title="Añadir Nodo"><i class="fa-solid fa-plus"></i></button>
+      <div class="popover shape-popover" id="shape-popover">
+        <button data-shape="rect" title="Rectángulo"><i class="fa-regular fa-square"></i></button>
+        <button data-shape="cloud" title="Nube"><i class="fa-solid fa-cloud"></i></button>
+        <button data-shape="circle" title="Círculo"><i class="fa-regular fa-circle"></i></button>
+        <button data-shape="clipboard" title="Portapapeles"><i class="fa-regular fa-clipboard"></i></button>
+        <button data-shape="hexagon" title="Hexágono"><i class="fa-solid fa-draw-polygon"></i></button>
+        <button data-shape="diamond" title="Diamante"><i class="fa-solid fa-gem"></i></button>
+        <button data-shape="star" title="Estrella"><i class="fa-regular fa-star"></i></button>
+        <button data-shape="sticky" title="Nota adhesiva"><i class="fa-regular fa-note-sticky"></i></button>
+      </div>
+    </div>
+
+    <button data-tool="add-link" title="Añadir Conexión"><i class="fa-solid fa-arrow-right-long"></i></button>
+
+    <div class="dock-sep"></div>
+
+    <div class="dock-group" id="draw-group">
+      <button data-tool="draw" title="Dibujar a mano alzada"><i class="fa-solid fa-pencil"></i></button>
+      <div class="popover brush-popover" id="brush-popover">
+        <button data-brush="pencil" class="active" title="Lápiz"><i class="fa-solid fa-pencil"></i></button>
+        <button data-brush="marker" title="Rotulador"><i class="fa-solid fa-marker"></i></button>
+        <button data-brush="dotted" title="Punteado"><i class="fa-solid fa-ellipsis"></i></button>
+        <button data-brush="spray" title="Spray"><i class="fa-solid fa-spray-can"></i></button>
+        <button data-brush="highlighter" title="Resaltador"><i class="fa-solid fa-highlighter"></i></button>
+        <div class="pop-sep"></div>
+        <button id="stabilizer-toggle" class="on" title="Estabilizador de pulso"><i class="fa-solid fa-arrows-to-dot"></i></button>
+        <button id="autoshape-toggle" class="on" title="Autoajuste del trazo (endereza líneas y reconoce figuras)"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+      </div>
+    </div>
+
+    <div class="dock-group" id="figure-group">
+      <button data-tool="shape" title="Figuras (arrastrar para dibujar)"><i class="fa-solid fa-shapes"></i></button>
+      <div class="popover figure-popover" id="figure-popover">
+        <button data-figure="rect" class="active" title="Cuadrado / Rectángulo"><i class="fa-regular fa-square"></i></button>
+        <button data-figure="ellipse" title="Círculo / Elipse"><i class="fa-regular fa-circle"></i></button>
+        <button data-figure="triangle" title="Triángulo"><i class="fa-solid fa-caret-up"></i></button>
+        <button data-figure="line" title="Línea"><i class="fa-solid fa-slash"></i></button>
+        <button data-figure="arrow" title="Flecha"><i class="fa-solid fa-arrow-right"></i></button>
+        <button id="fill-toggle" title="Con relleno / sin relleno"><i class="fa-solid fa-fill-drip"></i></button>
+      </div>
+    </div>
+
+    <button data-tool="erase" title="Borrador (trazos y figuras)"><i class="fa-solid fa-eraser"></i></button>
+
+    <div class="dock-sep"></div>
+
+    <div class="dock-group" id="color-group">
+      <button id="color-btn" title="Color de tinta">
+        <i class="fa-solid fa-pen"></i><span class="color-dot" id="color-dot"></span>
+      </button>
+      <div class="popover color-popover" id="color-popover">
+        <button class="swatch" data-color="#2b2b2b" style="background:#2b2b2b" title="Negro"></button>
+        <button class="swatch" data-color="#1d4ed8" style="background:#1d4ed8" title="Azul"></button>
+        <button class="swatch" data-color="#dc2626" style="background:#dc2626" title="Rojo"></button>
+        <button class="swatch" data-color="#16a34a" style="background:#16a34a" title="Verde"></button>
+        <button class="swatch" data-color="#ca8a04" style="background:#ca8a04" title="Amarillo"></button>
+      </div>
+    </div>
+
+    <div class="dock-group" id="tag-group">
+      <button id="tag-btn" title="Etiqueta / icono"><i class="fa-solid fa-tag"></i></button>
+      <div class="popover tag-popover" id="tag-popover">
+        <button data-icon="" title="Sin etiqueta"><i class="fa-solid fa-ban"></i></button>
+        <button data-icon="💡" title="Idea">💡</button>
+        <button data-icon="✅" title="Hecho">✅</button>
+        <button data-icon="❗" title="Importante">❗</button>
+        <button data-icon="🚩" title="Pendiente">🚩</button>
+        <button data-icon="⭐" title="Destacado">⭐</button>
+      </div>
+    </div>
+
+    <button id="edit-btn" title="Editar texto"><i class="fa-solid fa-pen-to-square"></i></button>
+    <button id="duplicate-btn" title="Duplicar (Ctrl+D)"><i class="fa-regular fa-clone"></i></button>
+
+    <div class="dock-sep"></div>
+
+    <button id="organize-btn" title="Auto-organizar (radial)"><i class="fa-solid fa-diagram-project"></i></button>
+
+    <div class="dock-group" id="calendar-group">
+      <button id="calendar-btn" title="Calendario de pizarras diarias"><i class="fa-regular fa-calendar-days"></i></button>
+      <div class="popover calendar-popover" id="calendar-popover"></div>
+    </div>
+
+    <div class="dock-group" id="theme-group">
+      <button id="theme-btn" title="Tema visual"><i class="fa-solid fa-palette"></i></button>
+      <div class="popover theme-popover" id="theme-popover">
+        <button data-app-theme="sketch" class="active" title="Estilo dibujado a mano"><i class="fa-solid fa-pencil"></i><span>Boceto</span></button>
+        <button data-app-theme="pro" title="Estilo empresarial, formas nítidas"><i class="fa-solid fa-briefcase"></i><span>Profesional</span></button>
+        <button data-app-theme="minimal" title="Estilo limpio y redondeado"><i class="fa-regular fa-circle"></i><span>Minimalista</span></button>
+      </div>
+    </div>
+
+    <button id="darkmode-btn" title="Modo oscuro"><i class="fa-solid fa-moon"></i></button>
+    <button id="search-btn" title="Buscar (Ctrl+F)"><i class="fa-solid fa-magnifying-glass"></i></button>
+
+    <div class="dock-sep"></div>
+
+    <button id="undo-btn" title="Deshacer (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
+    <button id="delete-btn" title="Borrar selección"><i class="fa-solid fa-trash"></i></button>
+    <button id="export-btn" title="Exportar a PNG"><i class="fa-solid fa-download"></i></button>
+  </div>
+
+  <!-- Modal de bienvenida -->
+  <div id="onboarding-overlay" class="overlay">
+    <div class="onboarding-modal">
+      <div class="onboarding-steps">
+        <div class="onboarding-step active" data-step="0">
+          <div class="step-icon"><i class="fa-solid fa-plus"></i></div>
+          <h2>1. Añadir</h2>
+          <p>Pulsa el botón <strong>+</strong> del dock, elige una forma (rectángulo, nube, círculo, estrella...) y aparecerá un nuevo nodo listo para editar.</p>
+        </div>
+        <div class="onboarding-step" data-step="1">
+          <div class="step-icon"><i class="fa-solid fa-arrow-right-long"></i></div>
+          <h2>2. Conectar</h2>
+          <p>Activa la herramienta de conexión, haz clic en el nodo de origen y luego en el de destino para dibujar una flecha entre ellos.</p>
+        </div>
+        <div class="onboarding-step" data-step="2">
+          <div class="step-icon"><i class="fa-solid fa-arrows-up-down-left-right"></i></div>
+          <h2>3. Mover</h2>
+          <p>Arrastra cualquier nodo para moverlo. Selecciónalo y usa el tirador de la esquina inferior derecha para cambiar su tamaño.</p>
+        </div>
+        <div class="onboarding-step" data-step="3">
+          <div class="step-icon"><i class="fa-solid fa-pencil"></i></div>
+          <h2>4. Dibujar y pegar</h2>
+          <p>Usa el lápiz para dibujar a mano alzada con distintos pinceles, agrega figuras con o sin relleno, y pega imágenes o GIFs con <strong>Ctrl+V</strong>.</p>
+        </div>
+        <div class="onboarding-step" data-step="4">
+          <div class="step-icon"><i class="fa-regular fa-calendar-days"></i></div>
+          <h2>5. Un pizarrón por día</h2>
+          <p>Cada día tienes un pizarrón nuevo. Con el calendario puedes visitar días anteriores y revivir los doodles que hiciste. <strong>Tab</strong> crea hijos, <strong>Ctrl+F</strong> busca.</p>
+        </div>
+      </div>
+      <div class="onboarding-dots">
+        <span class="dot active" data-dot="0"></span>
+        <span class="dot" data-dot="1"></span>
+        <span class="dot" data-dot="2"></span>
+        <span class="dot" data-dot="3"></span>
+        <span class="dot" data-dot="4"></span>
+      </div>
+      <div class="onboarding-actions">
+        <button id="onboarding-skip">Saltar</button>
+        <button id="onboarding-next" class="primary">Siguiente</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="export-canvas" style="display:none;"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
