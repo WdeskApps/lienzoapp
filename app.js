@@ -355,25 +355,29 @@ function seedDemoImage() {
    vistazo lo que se puede hacer. */
 function seedExample() {
   const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+  // El demo se ve mejor con el tema Profesional; solo si el visitante
+  // aún no ha elegido uno propio.
+  if (!localStorage.getItem(THEME_KEY)) localStorage.setItem(THEME_KEY, 'pro');
+
   nodes = [
-    { id: 'n1',  x: cx - 110, y: cy - 60,  w: 220, h: 110, shape: 'cloud',     text: 'Organización 2026',           color: '#2b2b2b', icon: '⭐', collapsed: false },
+    { id: 'n1',  x: cx - 110, y: cy - 60,  w: 220, h: 110, shape: 'cloud',     text: 'Plan Anual 2026',             color: '#2b2b2b', icon: '⭐', collapsed: false },
 
-    { id: 'n2',  x: cx - 500, y: cy - 260, w: 185, h: 85,  shape: 'rect',      text: '⚡ Operación diaria',          color: '#1d4ed8', icon: '',   collapsed: false },
-    { id: 'n3',  x: cx - 590, y: cy - 120, w: 190, h: 75,  shape: 'rect',      text: 'Monitoreo en tiempo real',    color: '#1d4ed8', icon: '',   collapsed: false },
-    { id: 'n4',  x: cx - 360, y: cy - 125, w: 190, h: 75,  shape: 'rect',      text: 'Protocolos de emergencia',    color: '#1d4ed8', icon: '',   collapsed: false },
+    { id: 'n2',  x: cx - 500, y: cy - 260, w: 185, h: 85,  shape: 'rect',      text: '🗂️ Procesos internos',        color: '#1d4ed8', icon: '',   collapsed: false },
+    { id: 'n3',  x: cx - 590, y: cy - 120, w: 190, h: 75,  shape: 'rect',      text: 'Ordenar la documentación',    color: '#1d4ed8', icon: '',   collapsed: false },
+    { id: 'n4',  x: cx - 360, y: cy - 125, w: 190, h: 75,  shape: 'rect',      text: 'Simplificar aprobaciones',    color: '#1d4ed8', icon: '',   collapsed: false },
 
-    { id: 'n5',  x: cx + 250, y: cy - 270, w: 195, h: 95,  shape: 'hexagon',   text: '🎯 Planificación',            color: '#16a34a', icon: '',   collapsed: false },
-    { id: 'n6',  x: cx + 470, y: cy - 160, w: 160, h: 75,  shape: 'rect',      text: 'Metas del año',               color: '#16a34a', icon: '🚩', collapsed: false },
-    { id: 'n7',  x: cx + 220, y: cy - 130, w: 200, h: 75,  shape: 'rect',      text: 'Proyección de crecimiento',   color: '#16a34a', icon: '',   collapsed: false },
+    { id: 'n5',  x: cx + 250, y: cy - 270, w: 195, h: 95,  shape: 'hexagon',   text: '🎯 Metas y objetivos',        color: '#16a34a', icon: '',   collapsed: false },
+    { id: 'n6',  x: cx + 470, y: cy - 160, w: 160, h: 75,  shape: 'rect',      text: 'Metas trimestrales',          color: '#16a34a', icon: '🚩', collapsed: false },
+    { id: 'n7',  x: cx + 220, y: cy - 130, w: 200, h: 75,  shape: 'rect',      text: 'Indicadores de avance',       color: '#16a34a', icon: '',   collapsed: false },
 
-    { id: 'n8',  x: cx + 380, y: cy + 30,  w: 200, h: 100, shape: 'cloud',     text: '💼 Proyectos nuevos',         color: '#ca8a04', icon: '',   collapsed: false },
-    { id: 'n9',  x: cx + 400, y: cy + 180, w: 195, h: 75,  shape: 'rect',      text: 'Evaluación de propuestas',    color: '#ca8a04', icon: '',   collapsed: false },
+    { id: 'n8',  x: cx + 380, y: cy + 30,  w: 200, h: 100, shape: 'cloud',     text: '💼 Ideas de negocio',         color: '#ca8a04', icon: '',   collapsed: false },
+    { id: 'n9',  x: cx + 400, y: cy + 180, w: 195, h: 75,  shape: 'rect',      text: 'Encuestas de satisfacción',   color: '#ca8a04', icon: '',   collapsed: false },
 
-    { id: 'n10', x: cx + 30,  y: cy + 180, w: 190, h: 90,  shape: 'clipboard', text: '📊 Datos e informes',         color: '#2b2b2b', icon: '',   collapsed: false },
-    { id: 'n11', x: cx + 90,  y: cy + 320, w: 180, h: 70,  shape: 'rect',      text: 'Reportes mensuales',          color: '#2b2b2b', icon: '✅', collapsed: false },
+    { id: 'n10', x: cx + 30,  y: cy + 180, w: 190, h: 90,  shape: 'clipboard', text: '📊 Finanzas',                 color: '#2b2b2b', icon: '',   collapsed: false },
+    { id: 'n11', x: cx + 90,  y: cy + 320, w: 180, h: 70,  shape: 'rect',      text: 'Control de gastos',           color: '#2b2b2b', icon: '✅', collapsed: false },
 
-    { id: 'n12', x: cx - 420, y: cy + 70,  w: 185, h: 100, shape: 'circle',    text: '🤝 Coordinación de equipos',  color: '#dc2626', icon: '',   collapsed: false },
-    { id: 'n13', x: cx - 550, y: cy + 230, w: 165, h: 75,  shape: 'circle',    text: 'Reuniones clave',             color: '#dc2626', icon: '❗', collapsed: false },
+    { id: 'n12', x: cx - 420, y: cy + 70,  w: 185, h: 100, shape: 'circle',    text: '🤝 Personas y equipo',        color: '#dc2626', icon: '',   collapsed: false },
+    { id: 'n13', x: cx - 550, y: cy + 230, w: 165, h: 75,  shape: 'circle',    text: 'Actividades de integración',  color: '#dc2626', icon: '❗', collapsed: false },
 
     { id: 'n14', x: cx - 230, y: cy + 280, w: 195, h: 90,  shape: 'sticky',    text: '💡 Automatizar tareas repetitivas', color: '#16a34a', icon: '', collapsed: false },
     { id: 'n15', x: cx + 350, y: cy + 300, w: 195, h: 85,  shape: 'sticky',    text: '📸 Pega imágenes con Ctrl+V', color: '#ca8a04', icon: '',  collapsed: false }
@@ -392,16 +396,60 @@ function seedExample() {
     { id: 'l11', from: 'n1',  to: 'n12', color: '#dc2626' },
     { id: 'l12', from: 'n12', to: 'n13', color: '#dc2626' }
   ];
+
+  // Escena: persona presentando en un pizarrón (abajo a la izquierda)
+  const bx = cx - 660, by = cy + 340;   // pizarrón de la presentación
+  const px = bx + 215;                  // persona (figura de palitos)
+  // Escena: monitor + mouse (arriba a la izquierda)
+  const mx = cx - 700, my = cy - 340;
+  // Gráfico de torta a mano (junto a Finanzas)
+  const gx = cx + 235, gy = cy + 230, gc = gx + 47, gyc = gy + 47;
+
   strokes = [
     { id: 's1', brush: 'marker', color: '#ca8a04',
       points: [[cx - 95, cy + 62], [cx - 40, cy + 70], [cx + 25, cy + 60], [cx + 95, cy + 68]] },
     { id: 's2', brush: 'highlighter', color: '#ca8a04',
-      points: [[cx + 95, cy + 355], [cx + 265, cy + 355]] }
+      points: [[cx + 95, cy + 355], [cx + 265, cy + 355]] },
+    // contenido del pizarrón de la presentación
+    { id: 's3', brush: 'pencil', color: '#2b2b2b', points: [[bx + 20, by + 25], [bx + 95, by + 25]] },
+    { id: 's4', brush: 'pencil', color: '#2b2b2b', points: [[bx + 20, by + 45], [bx + 120, by + 45]] },
+    { id: 's5', brush: 'pencil', color: '#2b2b2b', points: [[bx + 20, by + 65], [bx + 80, by + 65]] },
+    // persona: cuerpo, brazo que apunta, otro brazo y piernas
+    { id: 's6', brush: 'pencil', color: '#2b2b2b', points: [[px, by + 21], [px, by + 65]] },
+    { id: 's7', brush: 'pencil', color: '#2b2b2b', points: [[px, by + 32], [px - 45, by + 18]] },
+    { id: 's8', brush: 'pencil', color: '#2b2b2b', points: [[px, by + 35], [px + 18, by + 50]] },
+    { id: 's9', brush: 'pencil', color: '#2b2b2b', points: [[px, by + 65], [px - 14, by + 95]] },
+    { id: 's10', brush: 'pencil', color: '#2b2b2b', points: [[px, by + 65], [px + 14, by + 95]] },
+    // pantalla del monitor: una curva tipo gráfico de líneas
+    { id: 's11', brush: 'pencil', color: '#1d4ed8',
+      points: [[mx + 18, my + 55], [mx + 45, my + 30], [mx + 70, my + 48], [mx + 105, my + 22]] },
+    // cable del mouse
+    { id: 's12', brush: 'pencil', color: '#2b2b2b',
+      points: [[mx + 175, my + 52], [mx + 168, my + 28], [mx + 140, my + 12]] },
+    // porción destacada de la torta
+    { id: 's13', brush: 'highlighter', color: '#ca8a04', points: [[gc + 8, gyc - 18], [gc + 26, gyc - 4]] }
   ];
+
   doodles = [
     { id: 'dd1', kind: 'ellipse', x: cx + 445, y: cy - 185, w: 210, h: 120, color: '#dc2626', filled: false },
-    { id: 'dd2', kind: 'arrow',   x: cx + 345, y: cy + 350, w: -160, h: 45, color: '#ca8a04', filled: false }
+    { id: 'dd2', kind: 'arrow',   x: cx + 345, y: cy + 350, w: -160, h: 45, color: '#ca8a04', filled: false },
+    // presentación: pizarrón con patas + cabeza de la persona
+    { id: 'dd3', kind: 'rect',    x: bx, y: by, w: 150, h: 95, color: '#2b2b2b', filled: false },
+    { id: 'dd4', kind: 'line',    x: bx + 30,  y: by + 95, w: -15, h: 40, color: '#2b2b2b', filled: false },
+    { id: 'dd5', kind: 'line',    x: bx + 120, y: by + 95, w: 15,  h: 40, color: '#2b2b2b', filled: false },
+    { id: 'dd6', kind: 'ellipse', x: px - 13, y: by - 5, w: 26, h: 26, color: '#2b2b2b', filled: false },
+    // monitor con soporte + mouse
+    { id: 'dd7', kind: 'rect',    x: mx, y: my, w: 130, h: 85, color: '#1d4ed8', filled: false },
+    { id: 'dd8', kind: 'line',    x: mx + 65, y: my + 85, w: 0, h: 18, color: '#1d4ed8', filled: false },
+    { id: 'dd9', kind: 'line',    x: mx + 35, y: my + 103, w: 60, h: 0, color: '#1d4ed8', filled: false },
+    { id: 'dd10', kind: 'ellipse', x: mx + 160, y: my + 52, w: 30, h: 42, color: '#2b2b2b', filled: false },
+    // gráfico de torta: círculo + tres radios
+    { id: 'dd11', kind: 'ellipse', x: gx, y: gy, w: 95, h: 95, color: '#2b2b2b', filled: false },
+    { id: 'dd12', kind: 'line',    x: gc, y: gyc, w: 0,   h: -47, color: '#2b2b2b', filled: false },
+    { id: 'dd13', kind: 'line',    x: gc, y: gyc, w: 45,  h: 12,  color: '#2b2b2b', filled: false },
+    { id: 'dd14', kind: 'line',    x: gc, y: gyc, w: -33, h: 33,  color: '#2b2b2b', filled: false }
   ];
+
   images = [
     { id: 'im1', x: cx + 130, y: cy + 400, w: 165, h: 112, dataUrl: seedDemoImage(), isGif: false, playing: false }
   ];
