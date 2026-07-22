@@ -34,11 +34,19 @@
   <!-- Capa 3: Selección, tiradores, colapso, etiquetas, badges GIF -->
   <div id="ui-layer"></div>
 
-  <!-- Chip del día visible (calendario) -->
-  <div id="day-chip">
-    <i class="fa-regular fa-calendar"></i>
-    <span id="day-chip-label"></span>
-    <button id="day-chip-today" title="Volver al pizarrón de hoy">Hoy</button>
+  <!-- Chip del día (calendario) + contacto -->
+  <div id="top-left-ui">
+    <div id="day-chip">
+      <i class="fa-regular fa-calendar"></i>
+      <span id="day-chip-label"></span>
+      <button id="day-chip-today" title="Volver al pizarrón de hoy">Hoy</button>
+    </div>
+    <button id="about-btn" title="Acerca de esta app"><i class="fa-solid fa-circle-exclamation"></i></button>
+    <div id="about-panel">
+      <h3>Sobre esta app</h3>
+      <p>Desarrollada con cariño por <strong>Wdesk</strong>. Tus pizarrones viven solo en tu navegador: nada se sube a la nube.</p>
+      <p>¿Ideas, problemas o saludos?<br><a href="mailto:wdesk.apps@gmail.com">wdesk.apps@gmail.com</a></p>
+    </div>
   </div>
 
   <!-- Indicador de zoom -->
@@ -215,6 +223,17 @@
         <button id="onboarding-next" class="primary">Siguiente</button>
       </div>
     </div>
+  </div>
+
+  <!-- Guía de primer uso: burbuja con flecha que recorre el dock -->
+  <div id="tour-tip">
+    <button id="tour-close" title="Cerrar guía">×</button>
+    <div id="tour-text"></div>
+    <div class="tour-foot">
+      <span id="tour-count"></span>
+      <button id="tour-next">Siguiente</button>
+    </div>
+    <div id="tour-arrow"></div>
   </div>
 
   <canvas id="export-canvas" style="display:none;"></canvas>

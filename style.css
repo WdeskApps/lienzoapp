@@ -431,11 +431,64 @@ body.mode-paint #links-layer .link-hit { pointer-events: none !important; }
 }
 .gif-btn:hover { background: rgba(20, 18, 14, 0.85); }
 
-/* ---------- Chip del día ---------- */
-#day-chip {
+/* ---------- Chip del día + contacto ---------- */
+#top-left-ui {
   position: fixed;
   top: 18px;
   left: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 500;
+}
+
+#about-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--dock-border);
+  background: var(--dock-bg);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  color: var(--dock-text);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(60, 50, 30, 0.18);
+  transition: transform 0.1s ease;
+}
+#about-btn:hover { transform: translateY(-1px); color: #1d4ed8; }
+
+#about-panel {
+  position: absolute;
+  top: 46px;
+  left: 0;
+  width: 264px;
+  padding: 16px 18px;
+  background: var(--dock-bg);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid var(--dock-border);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  color: var(--dock-text);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+#about-panel.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+#about-panel h3 { margin: 0 0 8px; font-size: 15px; }
+#about-panel p { margin: 0 0 10px; }
+#about-panel p:last-child { margin: 0; }
+#about-panel a { color: #1d4ed8; font-weight: 600; }
+
+#day-chip {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -587,6 +640,85 @@ body.mode-paint #links-layer .link-hit { pointer-events: none !important; }
   white-space: nowrap;
 }
 .search-panel button { width: 32px; height: 32px; font-size: 13px; }
+
+/* ---------- Guía de primer uso ---------- */
+#tour-tip {
+  position: fixed;
+  z-index: 600;
+  width: 240px;
+  padding: 14px 16px 12px;
+  background: var(--dock-bg);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid var(--dock-border);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  color: var(--dock-text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, top 0.3s ease, left 0.3s ease;
+}
+#tour-tip.visible { opacity: 1; pointer-events: auto; }
+#tour-arrow {
+  position: absolute;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  background: var(--dock-bg);
+  border-right: 1px solid var(--dock-border);
+  border-bottom: 1px solid var(--dock-border);
+  transform: rotate(45deg);
+  transition: left 0.3s ease;
+}
+#tour-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  border: none;
+  background: transparent;
+  color: var(--modal-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+#tour-close:hover { color: var(--dock-text); }
+#tour-text { padding-right: 16px; font-weight: 600; }
+.tour-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+#tour-count {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 11px;
+  color: var(--modal-muted);
+}
+#tour-next {
+  border: none;
+  background: #1d4ed8;
+  color: #fff;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+#tour-next:hover { background: #1741b0; }
+.dock button.tour-target {
+  background: rgba(29, 78, 216, 0.2);
+  color: #1d4ed8;
+  animation: tour-pulse 1.1s ease-in-out infinite;
+}
+@keyframes tour-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(29, 78, 216, 0.45); }
+  50% { box-shadow: 0 0 0 7px rgba(29, 78, 216, 0); }
+}
 
 /* ---------- Modal de bienvenida ---------- */
 .overlay {

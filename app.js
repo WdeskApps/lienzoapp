@@ -2484,8 +2484,17 @@ function initDock() {
 
   zoomIndicator.addEventListener('click', e => { e.stopPropagation(); resetView(); });
 
+  // Panel "Sobre esta app" (contacto)
+  const aboutBtn = document.getElementById('about-btn');
+  const aboutPanel = document.getElementById('about-panel');
+  aboutBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    aboutPanel.classList.toggle('open');
+  });
+
   document.addEventListener('pointerdown', e => {
     if (!e.target.closest('.dock-group')) closePopovers();
+    if (!e.target.closest('#about-panel') && !e.target.closest('#about-btn')) aboutPanel.classList.remove('open');
   });
 }
 
@@ -2565,6 +2574,74 @@ function initCanvasEvents() {
 /* =========================================================
    Onboarding
    ========================================================= */
+/* =========================================================
+   Guía de primer uso — flecha que recorre el dock
+   ========================================================= */
+const TOUR_KEY = 'mindmapper-tour-done';
+const TOUR_STEPS = [
+  ['[data-tool="select"]', 'Selecciona y mueve lo que quieras'],
+  ['#add-node-btn', 'Añade nodos con distintas formas'],
+  ['[data-tool="add-link"]', 'Conecta un nodo con otro'],
+  ['[data-tool="draw"]', 'Dibuja a mano alzada con varios pinceles'],
+  ['[data-tool="shape"]', 'Figuras geométricas: arrastra para dibujarlas'],
+  ['[data-tool="erase"]', 'Borra trazos y figuras'],
+  ['#color-btn', 'Cambia el color de la tinta'],
+  ['#organize-btn', 'Ordena el mapa automáticamente'],
+  ['#calendar-btn', 'Cada día tienes un pizarrón nuevo'],
+  ['#theme-btn', 'Cambia el tema visual: Boceto, Profesional o Minimalista'],
+  ['#file-btn', 'Guarda tus pizarrones como archivo o imagen, y cárgalos después']
+];
+let tourIndex = -1;
+let tourTimer = null;
+
+function endTour() {
+  if (tourTimer) { clearTimeout(tourTimer); tourTimer = null; }
+  tourIndex = -1;
+  localStorage.setItem(TOUR_KEY, '1');
+  document.getElementById('tour-tip').classList.remove('visible');
+  document.querySelectorAll('.tour-target').forEach(b => b.classList.remove('tour-target'));
+}
+
+function showTourStep(i) {
+  if (tourTimer) { clearTimeout(tourTimer); tourTimer = null; }
+  document.querySelectorAll('.tour-target').forEach(b => b.classList.remove('tour-target'));
+  if (i >= TOUR_STEPS.length) { endTour(); return; }
+  const btn = document.querySelector(TOUR_STEPS[i][0]);
+  if (!btn) { showTourStep(i + 1); return; }
+  tourIndex = i;
+  btn.classList.add('tour-target');
+
+  const tip = document.getElementById('tour-tip');
+  document.getElementById('tour-text').textContent = TOUR_STEPS[i][1];
+  document.getElementById('tour-count').textContent = (i + 1) + ' / ' + TOUR_STEPS.length;
+  tip.classList.add('visible');
+
+  const r = btn.getBoundingClientRect();
+  let left = r.left + r.width / 2 - tip.offsetWidth / 2;
+  left = Math.max(10, Math.min(left, window.innerWidth - tip.offsetWidth - 10));
+  tip.style.left = left + 'px';
+  tip.style.top = (r.top - tip.offsetHeight - 14) + 'px';
+  document.getElementById('tour-arrow').style.left = (r.left + r.width / 2 - left - 7) + 'px';
+
+  tourTimer = setTimeout(() => showTourStep(tourIndex + 1), 3500);
+}
+
+function startTour() {
+  if (localStorage.getItem(TOUR_KEY)) return;
+  showTourStep(0);
+}
+
+function initTour() {
+  document.getElementById('tour-close').addEventListener('click', e => {
+    e.stopPropagation();
+    endTour();
+  });
+  document.getElementById('tour-next').addEventListener('click', e => {
+    e.stopPropagation();
+    showTourStep(tourIndex + 1);
+  });
+}
+
 function initOnboarding() {
   const overlay = document.getElementById('onboarding-overlay');
   if (localStorage.getItem(ONBOARD_KEY)) {
@@ -2585,6 +2662,7 @@ function initOnboarding() {
   function close() {
     localStorage.setItem(ONBOARD_KEY, '1');
     overlay.classList.add('hidden');
+    startTour();
   }
   nextBtn.addEventListener('click', () => {
     if (step < steps.length - 1) { step++; show(step); }
@@ -2607,6 +2685,7 @@ function init() {
   initDock();
   initCanvasEvents();
   initPaste();
+  initTour();
   initOnboarding();
   updateDayChip();
   setTool('select');
