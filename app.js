@@ -193,13 +193,14 @@ function loadBoard(dayKey) {
   }
   if (raw) {
     try {
-      const data = JSON.parse(raw);
-      nodes = data.nodes || [];
-      links = data.links || [];
-      strokes = data.strokes || [];
-      doodles = data.doodles || [];
-      images = data.images || [];
-      nodes.forEach(n => { if (n.icon === undefined) n.icon = ''; });
+      const clean = sanitizeBoard(JSON.parse(raw));
+      if (clean) {
+        nodes = clean.nodes;
+        links = clean.links;
+        strokes = clean.strokes;
+        doodles = clean.doodles;
+        images = clean.images;
+      }
     } catch (e) { /* pizarra corrupta: se parte vacía */ }
   }
   let maxId = 0;
@@ -904,6 +905,12 @@ function renderTextLayer() {
       div.addEventListener('input', () => {
         const n = liveNode(nodeId);
         if (n) { n.text = div.innerText; fitText(div, n); }
+      });
+      // Pegar solo texto plano: evita que HTML enriquecido entre al div editable
+      div.addEventListener('paste', e => {
+        e.preventDefault();
+        const t = (e.clipboardData || window.clipboardData).getData('text/plain');
+        if (t) document.execCommand('insertText', false, t);
       });
       div.addEventListener('blur', () => finishEditing(nodeId));
       div.addEventListener('keydown', (e) => {
@@ -1944,15 +1951,98 @@ function exportAllFile() {
 
 function validDayKey(k) { return /^\d{4}-\d{2}-\d{2}$/.test(k); }
 
-function normalizeBoard(b) {
+/* --- Sanitización profunda ---
+   Todo dato que entra por archivo (o quedó corrupto en localStorage)
+   se reduce a los campos esperados con tipos y rangos válidos. Evita
+   XSS por URLs remotas en imágenes, y que un archivo malformado deje
+   la app en un ciclo de crash al renderizar. */
+const VALID_SHAPES = ['rect', 'cloud', 'circle', 'clipboard', 'hexagon', 'diamond', 'star', 'sticky'];
+const VALID_KINDS = ['rect', 'ellipse', 'triangle', 'line', 'arrow'];
+const LIMITS = { items: 3000, text: 5000, icon: 8, id: 64, points: 20000, dataUrl: 4000000, coord: 200000, size: 8000 };
+
+function sanNum(v, fb, min, max) {
+  v = Number(v);
+  if (!Number.isFinite(v)) return fb;
+  return Math.min(Math.max(v, min), max);
+}
+function sanStr(v, max) { return typeof v === 'string' ? v.slice(0, max) : ''; }
+function sanColor(v) { return (typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v)) ? v : DEFAULT_INK; }
+function sanDataUrl(v) {
+  return (typeof v === 'string' && v.length <= LIMITS.dataUrl &&
+    /^data:image\/(png|jpe?g|gif|webp|bmp|avif);base64,[A-Za-z0-9+/=]+$/.test(v)) ? v : null;
+}
+function sanArr(v) { return Array.isArray(v) ? v.slice(0, LIMITS.items) : []; }
+
+function sanitizeBoard(b) {
   if (!b || typeof b !== 'object') return null;
-  return {
-    nodes: Array.isArray(b.nodes) ? b.nodes : [],
-    links: Array.isArray(b.links) ? b.links : [],
-    strokes: Array.isArray(b.strokes) ? b.strokes : [],
-    doodles: Array.isArray(b.doodles) ? b.doodles : [],
-    images: Array.isArray(b.images) ? b.images : []
-  };
+  const C = LIMITS.coord, S = LIMITS.size;
+  const out = { nodes: [], links: [], strokes: [], doodles: [], images: [] };
+
+  sanArr(b.nodes).forEach(n => {
+    if (!n || typeof n !== 'object' || !n.id) return;
+    out.nodes.push({
+      id: sanStr(n.id, LIMITS.id),
+      shape: VALID_SHAPES.includes(n.shape) ? n.shape : 'rect',
+      x: sanNum(n.x, 0, -C, C), y: sanNum(n.y, 0, -C, C),
+      w: sanNum(n.w, 170, 20, S), h: sanNum(n.h, 95, 20, S),
+      text: sanStr(n.text, LIMITS.text),
+      color: sanColor(n.color),
+      icon: sanStr(n.icon, LIMITS.icon),
+      collapsed: !!n.collapsed
+    });
+  });
+
+  sanArr(b.links).forEach(l => {
+    if (!l || typeof l !== 'object' || !l.id || !l.from || !l.to) return;
+    out.links.push({
+      id: sanStr(l.id, LIMITS.id),
+      from: sanStr(l.from, LIMITS.id),
+      to: sanStr(l.to, LIMITS.id),
+      color: sanColor(l.color)
+    });
+  });
+
+  sanArr(b.strokes).forEach(s => {
+    if (!s || typeof s !== 'object' || !s.id || !Array.isArray(s.points)) return;
+    const points = s.points.slice(0, LIMITS.points)
+      .filter(p => Array.isArray(p) && Number.isFinite(Number(p[0])) && Number.isFinite(Number(p[1])))
+      .map(p => [sanNum(p[0], 0, -C, C), sanNum(p[1], 0, -C, C)]);
+    if (!points.length) return;
+    out.strokes.push({
+      id: sanStr(s.id, LIMITS.id),
+      brush: Object.prototype.hasOwnProperty.call(BRUSHES, s.brush) ? s.brush : 'pencil',
+      color: sanColor(s.color),
+      points
+    });
+  });
+
+  sanArr(b.doodles).forEach(d => {
+    if (!d || typeof d !== 'object' || !d.id) return;
+    out.doodles.push({
+      id: sanStr(d.id, LIMITS.id),
+      kind: VALID_KINDS.includes(d.kind) ? d.kind : 'rect',
+      x: sanNum(d.x, 0, -C, C), y: sanNum(d.y, 0, -C, C),
+      w: sanNum(d.w, 0, -S, S), h: sanNum(d.h, 0, -S, S),
+      color: sanColor(d.color),
+      filled: !!d.filled
+    });
+  });
+
+  sanArr(b.images).forEach(im => {
+    if (!im || typeof im !== 'object' || !im.id) return;
+    const dataUrl = sanDataUrl(im.dataUrl);
+    if (!dataUrl) return;
+    out.images.push({
+      id: sanStr(im.id, LIMITS.id),
+      x: sanNum(im.x, 0, -C, C), y: sanNum(im.y, 0, -C, C),
+      w: sanNum(im.w, 100, 4, S), h: sanNum(im.h, 100, 4, S),
+      dataUrl,
+      isGif: !!im.isGif,
+      playing: false
+    });
+  });
+
+  return out;
 }
 
 function boardEmpty(b) {
@@ -1970,7 +2060,7 @@ function importFromFile(file) {
       return;
     }
     const entries = Object.entries(data.days)
-      .filter(([k, v]) => validDayKey(k) && normalizeBoard(v));
+      .filter(([k, v]) => validDayKey(k) && sanitizeBoard(v));
     if (!entries.length) { alert('El archivo no contiene pizarrones.'); return; }
 
     const conflicts = entries.filter(([k]) => dayHasData(k)).map(([k]) => k);
@@ -1987,7 +2077,7 @@ function importFromFile(file) {
     let imported = 0, skipped = 0, quotaHit = false;
     for (const [k, v] of entries) {
       if (dayHasData(k) && !overwrite) { skipped++; continue; }
-      const board = normalizeBoard(v);
+      const board = sanitizeBoard(v);
       try {
         if (boardEmpty(board)) localStorage.removeItem(DAY_PREFIX + k);
         else localStorage.setItem(DAY_PREFIX + k, JSON.stringify(board));
