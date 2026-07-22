@@ -483,7 +483,13 @@ body.mode-paint #links-layer .link-hit { pointer-events: none !important; }
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
 #about-panel.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
-#about-panel h3 { margin: 0 0 8px; font-size: 15px; }
+#about-panel h3 { margin: 0 0 2px; font-size: 15px; }
+#about-panel .about-tagline {
+  color: var(--modal-muted);
+  font-size: 12.5px;
+  font-style: italic;
+  margin: 0 0 10px;
+}
 #about-panel p { margin: 0 0 10px; }
 #about-panel p:last-child { margin: 0; }
 #about-panel a { color: #1d4ed8; font-weight: 600; }

@@ -1,5 +1,6 @@
 /* =========================================================
-   MindMapper — Pizarrón diario de mapas mentales y doodles
+   LienzoApp — Tu espacio infinito para pensar, dibujar y crear
+   (pizarrón diario de mapas mentales y doodles)
    (Vanilla JS + Rough.js)
    ========================================================= */
 
@@ -2071,7 +2072,9 @@ async function exportPNG() {
 /* =========================================================
    Guardar / cargar archivos (.json)
    ========================================================= */
-const FILE_FORMAT = 'mindmapper';
+const FILE_FORMAT = 'lienzoapp';
+// Respaldos exportados antes del cambio de nombre siguen siendo válidos
+const FILE_FORMATS_OK = ['lienzoapp', 'mindmapper'];
 
 function downloadJSON(obj, filename) {
   const blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
@@ -2214,7 +2217,7 @@ function importFromFile(file) {
   reader.onload = () => {
     let data;
     try { data = JSON.parse(reader.result); } catch (e) { data = null; }
-    if (!data || data.app !== FILE_FORMAT || !data.days || typeof data.days !== 'object') {
+    if (!data || !FILE_FORMATS_OK.includes(data.app) || !data.days || typeof data.days !== 'object') {
       alert('El archivo no es un respaldo válido de esta aplicación.');
       return;
     }
