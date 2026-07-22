@@ -102,12 +102,13 @@ const THEMES = {
     accentFill: '#e2e8f0', accentFillDark: '#0f172a'
   },
   minimal: {
-    sketchy: false, cornerRadius: 16,
-    nodeStroke: 2, doodleStroke: 2.2,
-    font: "'Nunito', 'Segoe UI', sans-serif", weight: 700,
-    darkInk: '#e9e9f0',
+    sketchy: false, flat: true, cornerRadius: 22,
+    nodeStroke: 0, doodleStroke: 2.2,
+    font: "'Quicksand', 'Segoe UI', sans-serif", weight: 700,
+    darkInk: '#ececf4',
     nodeFill: '#ffffff', nodeFillDark: '#26262e',
-    accentFill: '#ececf2', accentFillDark: '#1b1b22'
+    accentFill: '#ececf2', accentFillDark: '#1b1b22',
+    flatOpacity: 0.16, flatOpacityDark: 0.3
   }
 };
 
@@ -584,6 +585,15 @@ const draw = {
 
 function shapeOptions(node) {
   const t = themeCfg();
+  // Tema plano (Minimalista): sin contorno, relleno pastel del color del nodo
+  if (t.flat) {
+    return {
+      stroke: 'none',
+      strokeWidth: 0,
+      fill: resolveColor(node.color),
+      fillOpacity: isDarkMode ? t.flatOpacityDark : t.flatOpacity
+    };
+  }
   const opts = {
     stroke: resolveColor(node.color),
     strokeWidth: t.nodeStroke,
@@ -623,7 +633,11 @@ function buildNodeShape(node) {
   g.setAttribute('transform', `translate(${node.x},${node.y})`);
   const opts = shapeOptions(node);
   const t = themeCfg();
-  const accent = isDarkMode ? t.accentFillDark : t.accentFill;
+  // Piezas secundarias (clip del portapapeles, doblez de la nota):
+  // en tema plano usan el mismo color más intenso; en el resto, el fill de acento
+  const accentOpts = t.flat
+    ? { ...opts, fillOpacity: Math.min(1, (opts.fillOpacity || 0.16) * 2) }
+    : { ...opts, fill: isDarkMode ? t.accentFillDark : t.accentFill };
   let el;
 
   if (node.shape === 'circle') {
@@ -638,12 +652,12 @@ function buildNodeShape(node) {
     el.appendChild(draw.rectangle(0, 0, node.w, node.h, opts));
     const clipW = node.w * 0.36, clipH = Math.max(10, node.h * 0.1);
     const clipX = (node.w - clipW) / 2, clipY = -clipH * 0.5;
-    el.appendChild(draw.rectangle(clipX, clipY, clipW, clipH, { ...opts, fill: accent, rx: 4 }));
+    el.appendChild(draw.rectangle(clipX, clipY, clipW, clipH, { ...accentOpts, rx: 4 }));
   } else if (node.shape === 'sticky') {
     el = document.createElementNS(svgNS, 'g');
     el.appendChild(draw.rectangle(0, 0, node.w, node.h, { ...opts, rx: 0 }));
     const fold = Math.min(node.w, node.h) * 0.22;
-    el.appendChild(draw.polygon([[node.w - fold, 0], [node.w, 0], [node.w, fold]], { ...opts, fill: accent }));
+    el.appendChild(draw.polygon([[node.w - fold, 0], [node.w, 0], [node.w, fold]], accentOpts));
     el.appendChild(draw.line(node.w - fold, 0, node.w - fold, fold, opts));
     el.appendChild(draw.line(node.w - fold, fold, node.w, fold, opts));
   } else if (node.shape === 'hexagon' || node.shape === 'diamond' || node.shape === 'star') {
@@ -2588,7 +2602,7 @@ const TOUR_STEPS = [
   ['#color-btn', 'Cambia el color de la tinta'],
   ['#organize-btn', 'Ordena el mapa automáticamente'],
   ['#calendar-btn', 'Cada día tienes un pizarrón nuevo'],
-  ['#theme-btn', 'Cambia el tema visual: Boceto, Profesional o Minimalista'],
+  ['#theme-btn', 'Cambia el tema visual cuando quieras — ¡mira, de Profesional a Boceto!', () => setTheme('sketch')],
   ['#file-btn', 'Guarda tus pizarrones como archivo o imagen, y cárgalos después']
 ];
 let tourIndex = -1;
@@ -2610,6 +2624,7 @@ function showTourStep(i) {
   if (!btn) { showTourStep(i + 1); return; }
   tourIndex = i;
   btn.classList.add('tour-target');
+  if (TOUR_STEPS[i][2]) TOUR_STEPS[i][2]();
 
   const tip = document.getElementById('tour-tip');
   document.getElementById('tour-text').textContent = TOUR_STEPS[i][1];

@@ -69,26 +69,26 @@ body[data-theme="pro"].dark {
 }
 
 body[data-theme="minimal"] {
-  --bg: #fbfbfd;
-  --dot: #e9e9f0;
-  --dock-bg: rgba(255, 255, 255, 0.8);
-  --dock-border: rgba(20, 20, 30, 0.07);
+  --bg: #fdfdff;
+  --dot: #ececf2;
+  --dock-bg: rgba(255, 255, 255, 0.85);
+  --dock-border: rgba(20, 20, 30, 0.06);
   --dock-text: #44444f;
   --dock-hover: rgba(70, 70, 85, 0.08);
   --modal-bg: #ffffff;
   --modal-text: #1d1d24;
   --modal-muted: #6f6f7c;
   --sep: rgba(70, 70, 85, 0.15);
-  --font-board: 'Nunito', 'Segoe UI', sans-serif;
-  --font-ui: 'Nunito', 'Segoe UI', sans-serif;
+  --font-board: 'Quicksand', 'Segoe UI', sans-serif;
+  --font-ui: 'Quicksand', 'Segoe UI', sans-serif;
   --node-weight: 700;
-  --board-image: radial-gradient(circle, var(--dot) 1px, transparent 1px);
-  --board-size: 26px 26px;
-  --node-shadow: drop-shadow(0 3px 6px rgba(25, 25, 35, 0.08));
+  --board-image: none;
+  --board-size: auto;
+  --node-shadow: none;
 }
 
 body[data-theme="minimal"].dark {
-  --bg: #17171c;
+  --bg: #141419;
   --dot: #26262e;
   --dock-bg: rgba(23, 23, 28, 0.7);
   --dock-border: rgba(255, 255, 255, 0.1);
@@ -395,7 +395,7 @@ body.mode-paint #links-layer .link-hit { pointer-events: none !important; }
 /* Cada opción se muestra con la tipografía de su propio tema */
 .theme-popover button[data-app-theme="sketch"] { font-family: 'Kalam', cursive; font-weight: 700; }
 .theme-popover button[data-app-theme="pro"] { font-family: 'Inter', 'Segoe UI', sans-serif; font-weight: 600; }
-.theme-popover button[data-app-theme="minimal"] { font-family: 'Nunito', 'Segoe UI', sans-serif; font-weight: 700; }
+.theme-popover button[data-app-theme="minimal"] { font-family: 'Quicksand', 'Segoe UI', sans-serif; font-weight: 700; }
 .shape-popover { flex-wrap: wrap; width: 176px; }
 .figure-popover { flex-wrap: wrap; width: 176px; }
 .brush-popover { align-items: center; }
