@@ -4,6 +4,8 @@
    (Vanilla JS + Rough.js)
    ========================================================= */
 
+(function() {
+
 const svgNS = 'http://www.w3.org/2000/svg';
 const LEGACY_KEY = 'mindmapper-data';
 const DAY_PREFIX = 'mindmapper-day-';
@@ -942,28 +944,125 @@ function buildGifOverlay(im) {
   return fo;
 }
 
+const svgElements = new Map();
+
 function renderSVG() {
-  imagesLayer.innerHTML = '';
-  nodesLayer.innerHTML = '';
-  linksLayer.innerHTML = '';
-  drawingsLayer.innerHTML = '';
-  maskDefs.innerHTML = '';
+  const activeIds = new Set();
 
   images.forEach(im => {
-    imagesLayer.appendChild(buildImageEl(im));
-    if (im.isGif && im.playing) imagesLayer.appendChild(buildGifOverlay(im));
+    const id = 'img-' + im.id;
+    activeIds.add(id);
+    let el = svgElements.get(id);
+    if (!el) {
+      el = buildImageEl(im);
+      imagesLayer.appendChild(el);
+      svgElements.set(id, el);
+    } else {
+      el.setAttribute('x', im.x);
+      el.setAttribute('y', im.y);
+      el.setAttribute('width', im.w);
+      el.setAttribute('height', im.h);
+      if (el.parentNode !== imagesLayer) imagesLayer.appendChild(el);
+    }
+
+    if (im.isGif) {
+      const gid = 'gifo-' + im.id;
+      if (im.playing) {
+        activeIds.add(gid);
+        let go = svgElements.get(gid);
+        if (!go) {
+          go = buildGifOverlay(im);
+          imagesLayer.appendChild(go);
+          svgElements.set(gid, go);
+        } else {
+          go.setAttribute('x', im.x);
+          go.setAttribute('y', im.y);
+          go.setAttribute('width', im.w);
+          go.setAttribute('height', im.h);
+          if (go.parentNode !== imagesLayer) imagesLayer.appendChild(go);
+        }
+      }
+    }
   });
 
+  linksLayer.innerHTML = '';
+  maskDefs.innerHTML = '';
   const visNodes = visibleNodeList();
   visibleLinkList().forEach(link => {
     const g = buildLink(link, visNodes);
     if (g) linksLayer.appendChild(g);
   });
-  visNodes.forEach(node => nodesLayer.appendChild(buildNodeShape(node)));
 
-  doodles.forEach(d => drawingsLayer.appendChild(buildDoodleEl(d)));
-  strokes.forEach(s => drawingsLayer.appendChild(buildStrokeEl(s)));
-  doodles.forEach(d => drawingsLayer.appendChild(buildDoodleHit(d)));
+  visNodes.forEach(node => {
+    const id = 'node-' + node.id;
+    activeIds.add(id);
+    let cached = svgElements.get(id);
+    const hash = `${node.w}-${node.h}-${node.shape}-${node.color}-${currentTheme}-${isDarkMode}-${node.collapsed}`;
+    
+    if (!cached || cached.hash !== hash) {
+      if (cached) cached.el.remove();
+      const el = buildNodeShape(node);
+      nodesLayer.appendChild(el);
+      cached = { el, hash };
+      svgElements.set(id, cached);
+    } else {
+      cached.el.setAttribute('transform', `translate(${node.x},${node.y})`);
+      if (cached.el.parentNode !== nodesLayer) nodesLayer.appendChild(cached.el);
+    }
+  });
+
+  doodles.forEach(d => {
+    const id = 'doodle-' + d.id;
+    activeIds.add(id);
+    let cached = svgElements.get(id);
+    const hash = `${d.x}-${d.y}-${d.w}-${d.h}-${d.kind}-${d.color}-${d.filled}-${currentTheme}-${isDarkMode}`;
+    if (!cached || cached.hash !== hash) {
+      if (cached) cached.el.remove();
+      const el = buildDoodleEl(d);
+      drawingsLayer.appendChild(el);
+      cached = { el, hash };
+      svgElements.set(id, cached);
+    } else {
+      if (cached.el.parentNode !== drawingsLayer) drawingsLayer.appendChild(cached.el);
+    }
+
+    const hitId = 'dhit-' + d.id;
+    activeIds.add(hitId);
+    let cachedHit = svgElements.get(hitId);
+    if (!cachedHit || cachedHit.hash !== hash) {
+      if (cachedHit) cachedHit.el.remove();
+      const hit = buildDoodleHit(d);
+      drawingsLayer.appendChild(hit);
+      cachedHit = { el: hit, hash };
+      svgElements.set(hitId, cachedHit);
+    } else {
+      if (cachedHit.el.parentNode !== drawingsLayer) drawingsLayer.appendChild(cachedHit.el);
+    }
+  });
+
+  strokes.forEach(s => {
+    const id = 'stroke-' + s.id;
+    activeIds.add(id);
+    let cached = svgElements.get(id);
+    const hash = `${s.color}-${currentTheme}-${isDarkMode}`;
+    if (!cached || cached.hash !== hash) {
+      if (cached) cached.el.remove();
+      const el = buildStrokeEl(s);
+      drawingsLayer.appendChild(el);
+      cached = { el, hash };
+      svgElements.set(id, cached);
+    } else {
+      if (cached.el.parentNode !== drawingsLayer) drawingsLayer.appendChild(cached.el);
+    }
+  });
+
+  for (const [id, cached] of svgElements.entries()) {
+    if (!activeIds.has(id)) {
+      const el = cached.el || cached;
+      if (el && el.remove) el.remove();
+      svgElements.delete(id);
+    }
+  }
 }
 
 /* =========================================================
@@ -1033,7 +1132,16 @@ function renderTextLayer() {
       div.addEventListener('paste', e => {
         e.preventDefault();
         const t = (e.clipboardData || window.clipboardData).getData('text/plain');
-        if (t) document.execCommand('insertText', false, t);
+        if (t) {
+          const selection = window.getSelection();
+          if (!selection.rangeCount) return;
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(document.createTextNode(t));
+          range.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
       });
       div.addEventListener('blur', () => finishEditing(nodeId));
       div.addEventListener('keydown', (e) => {
@@ -1063,7 +1171,14 @@ function renderTextLayer() {
 
     if (isEditing && document.activeElement !== div) {
       div.focus();
-      if (selectAllOnFocus) { document.execCommand('selectAll', false, null); selectAllOnFocus = false; }
+      if (selectAllOnFocus) {
+        const range = document.createRange();
+        range.selectNodeContents(div);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        selectAllOnFocus = false;
+      }
       else placeCaretAtEnd(div);
     }
   });
@@ -1088,62 +1203,93 @@ function selectionBBox() {
   return null;
 }
 
+const uiElements = new Map();
+
 function renderUILayer() {
-  uiLayer.innerHTML = '';
   const visNodes = visibleNodeList();
   const adj = graphCache.adj;
+  const activeIds = new Set();
 
   visNodes.forEach(node => {
     if (node.icon) {
-      const badge = document.createElement('div');
-      badge.className = 'node-icon-badge';
+      const id = 'badge-' + node.id;
+      activeIds.add(id);
+      let badge = uiElements.get(id);
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'node-icon-badge';
+        uiLayer.appendChild(badge);
+        uiElements.set(id, badge);
+      }
       badge.textContent = node.icon;
       badge.style.left = node.x + 'px';
       badge.style.top = node.y + 'px';
-      uiLayer.appendChild(badge);
     }
     if ((adj[node.id] || []).length > 0) {
-      const btn = document.createElement('button');
-      btn.className = 'collapse-btn';
+      const id = 'collapse-' + node.id;
+      activeIds.add(id);
+      let btn = uiElements.get(id);
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.className = 'collapse-btn';
+        btn.addEventListener('pointerdown', e => { e.stopPropagation(); toggleCollapse(node.id); });
+        uiLayer.appendChild(btn);
+        uiElements.set(id, btn);
+      }
       btn.textContent = node.collapsed ? '+' : '−';
       btn.style.left = (node.x + node.w / 2 - 11) + 'px';
       btn.style.top = (node.y + node.h - 11) + 'px';
       btn.title = node.collapsed ? 'Expandir rama' : 'Colapsar rama';
-      btn.addEventListener('pointerdown', e => { e.stopPropagation(); toggleCollapse(node.id); });
-      uiLayer.appendChild(btn);
     }
   });
 
-  // Botón play/stop sobre cada GIF
   images.forEach(im => {
     if (!im.isGif) return;
-    const btn = document.createElement('button');
-    btn.className = 'gif-btn';
+    const id = 'gif-' + im.id;
+    activeIds.add(id);
+    let btn = uiElements.get(id);
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.className = 'gif-btn';
+      btn.addEventListener('pointerdown', e => {
+        e.stopPropagation();
+        im.playing = !im.playing;
+        saveLocal();
+        render();
+      });
+      uiLayer.appendChild(btn);
+      uiElements.set(id, btn);
+    }
     btn.innerHTML = im.playing ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
     btn.title = im.playing ? 'Detener GIF' : 'Reproducir GIF';
     btn.style.left = (im.x + im.w - 32) + 'px';
     btn.style.top = (im.y + 6) + 'px';
-    btn.addEventListener('pointerdown', e => {
-      e.stopPropagation();
-      im.playing = !im.playing;
-      saveLocal();
-      render();
-    });
-    uiLayer.appendChild(btn);
   });
 
   const b = selectionBBox();
   if (b) {
-    const box = document.createElement('div');
-    box.className = 'selection-box';
+    activeIds.add('sel-box');
+    let box = uiElements.get('sel-box');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'selection-box';
+      uiLayer.appendChild(box);
+      uiElements.set('sel-box', box);
+    }
     box.style.left = (b.x - 5) + 'px';
     box.style.top = (b.y - 5) + 'px';
     box.style.width = (b.w + 10) + 'px';
     box.style.height = (b.h + 10) + 'px';
-    uiLayer.appendChild(box);
 
-    const handle = document.createElement('div');
-    handle.className = 'resize-handle';
+    activeIds.add('sel-handle');
+    let handle = uiElements.get('sel-handle');
+    if (!handle) {
+      handle = document.createElement('div');
+      handle.className = 'resize-handle';
+      handle.addEventListener('pointerdown', e => startResize(e));
+      uiLayer.appendChild(handle);
+      uiElements.set('sel-handle', handle);
+    }
     if (selection.type === 'doodle') {
       const d = liveDoodle(selection.id);
       handle.style.left = (d.x + d.w - 8) + 'px';
@@ -1152,8 +1298,13 @@ function renderUILayer() {
       handle.style.left = (b.x + b.w - 8) + 'px';
       handle.style.top = (b.y + b.h - 8) + 'px';
     }
-    handle.addEventListener('pointerdown', e => startResize(e));
-    uiLayer.appendChild(handle);
+  }
+
+  for (const [id, el] of uiElements.entries()) {
+    if (!activeIds.has(id)) {
+      el.remove();
+      uiElements.delete(id);
+    }
   }
 }
 
@@ -2783,3 +2934,5 @@ function init() {
 }
 
 init();
+
+})();
