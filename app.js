@@ -333,20 +333,79 @@ function loadDrawPrefs() {
   document.getElementById('autoshape-toggle').classList.toggle('on', autoShapeOn);
 }
 
+/* Pequeña "foto" generada en canvas para mostrar que se pueden pegar
+   imágenes, sin cargar ningún archivo externo. */
+function seedDemoImage() {
+  const c = document.createElement('canvas');
+  c.width = 220; c.height = 150;
+  const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 0, 150);
+  g.addColorStop(0, '#aee3f5'); g.addColorStop(1, '#eaf7fb');
+  x.fillStyle = g; x.fillRect(0, 0, 220, 150);
+  x.fillStyle = '#f7c548'; x.beginPath(); x.arc(168, 42, 24, 0, 7); x.fill();
+  x.fillStyle = '#7fb069'; x.beginPath();
+  x.moveTo(0, 150); x.lineTo(64, 66); x.lineTo(136, 150); x.closePath(); x.fill();
+  x.fillStyle = '#5e8c4a'; x.beginPath();
+  x.moveTo(84, 150); x.lineTo(162, 84); x.lineTo(220, 150); x.closePath(); x.fill();
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
+/* Mapa demo: plan de ordenamiento de una organización genérica,
+   decorado con iconos, notas, trazos e imagen para mostrar de un
+   vistazo lo que se puede hacer. */
 function seedExample() {
   const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
   nodes = [
-    { id: 'n1', x: cx - 90,  y: cy - 170, w: 180, h: 100, shape: 'rect',      text: 'Idea Central',    color: '#2b2b2b', icon: '⭐', collapsed: false },
-    { id: 'n2', x: cx - 340, y: cy + 30,  w: 175, h: 95,  shape: 'cloud',     text: 'Lluvia de ideas', color: '#1d4ed8', icon: '',   collapsed: false },
-    { id: 'n3', x: cx + 130, y: cy + 30,  w: 175, h: 95,  shape: 'circle',    text: 'Tareas',          color: '#16a34a', icon: '',   collapsed: false },
-    { id: 'n4', x: cx - 70,  y: cy + 190, w: 175, h: 95,  shape: 'clipboard', text: 'Notas',           color: '#dc2626', icon: '',   collapsed: false }
+    { id: 'n1',  x: cx - 110, y: cy - 60,  w: 220, h: 110, shape: 'cloud',     text: 'Organización 2026',           color: '#2b2b2b', icon: '⭐', collapsed: false },
+
+    { id: 'n2',  x: cx - 500, y: cy - 260, w: 185, h: 85,  shape: 'rect',      text: '⚡ Operación diaria',          color: '#1d4ed8', icon: '',   collapsed: false },
+    { id: 'n3',  x: cx - 590, y: cy - 120, w: 190, h: 75,  shape: 'rect',      text: 'Monitoreo en tiempo real',    color: '#1d4ed8', icon: '',   collapsed: false },
+    { id: 'n4',  x: cx - 360, y: cy - 125, w: 190, h: 75,  shape: 'rect',      text: 'Protocolos de emergencia',    color: '#1d4ed8', icon: '',   collapsed: false },
+
+    { id: 'n5',  x: cx + 250, y: cy - 270, w: 195, h: 95,  shape: 'hexagon',   text: '🎯 Planificación',            color: '#16a34a', icon: '',   collapsed: false },
+    { id: 'n6',  x: cx + 470, y: cy - 160, w: 160, h: 75,  shape: 'rect',      text: 'Metas del año',               color: '#16a34a', icon: '🚩', collapsed: false },
+    { id: 'n7',  x: cx + 220, y: cy - 130, w: 200, h: 75,  shape: 'rect',      text: 'Proyección de crecimiento',   color: '#16a34a', icon: '',   collapsed: false },
+
+    { id: 'n8',  x: cx + 380, y: cy + 30,  w: 200, h: 100, shape: 'cloud',     text: '💼 Proyectos nuevos',         color: '#ca8a04', icon: '',   collapsed: false },
+    { id: 'n9',  x: cx + 400, y: cy + 180, w: 195, h: 75,  shape: 'rect',      text: 'Evaluación de propuestas',    color: '#ca8a04', icon: '',   collapsed: false },
+
+    { id: 'n10', x: cx + 30,  y: cy + 180, w: 190, h: 90,  shape: 'clipboard', text: '📊 Datos e informes',         color: '#2b2b2b', icon: '',   collapsed: false },
+    { id: 'n11', x: cx + 90,  y: cy + 320, w: 180, h: 70,  shape: 'rect',      text: 'Reportes mensuales',          color: '#2b2b2b', icon: '✅', collapsed: false },
+
+    { id: 'n12', x: cx - 420, y: cy + 70,  w: 185, h: 100, shape: 'circle',    text: '🤝 Coordinación de equipos',  color: '#dc2626', icon: '',   collapsed: false },
+    { id: 'n13', x: cx - 550, y: cy + 230, w: 165, h: 75,  shape: 'circle',    text: 'Reuniones clave',             color: '#dc2626', icon: '❗', collapsed: false },
+
+    { id: 'n14', x: cx - 230, y: cy + 280, w: 195, h: 90,  shape: 'sticky',    text: '💡 Automatizar tareas repetitivas', color: '#16a34a', icon: '', collapsed: false },
+    { id: 'n15', x: cx + 350, y: cy + 300, w: 195, h: 85,  shape: 'sticky',    text: '📸 Pega imágenes con Ctrl+V', color: '#ca8a04', icon: '',  collapsed: false }
   ];
   links = [
-    { id: 'l1', from: 'n1', to: 'n2', color: '#1d4ed8' },
-    { id: 'l2', from: 'n1', to: 'n3', color: '#16a34a' },
-    { id: 'l3', from: 'n1', to: 'n4', color: '#dc2626' }
+    { id: 'l1',  from: 'n1',  to: 'n2',  color: '#1d4ed8' },
+    { id: 'l2',  from: 'n2',  to: 'n3',  color: '#1d4ed8' },
+    { id: 'l3',  from: 'n2',  to: 'n4',  color: '#1d4ed8' },
+    { id: 'l4',  from: 'n1',  to: 'n5',  color: '#16a34a' },
+    { id: 'l5',  from: 'n5',  to: 'n6',  color: '#16a34a' },
+    { id: 'l6',  from: 'n5',  to: 'n7',  color: '#16a34a' },
+    { id: 'l7',  from: 'n1',  to: 'n8',  color: '#ca8a04' },
+    { id: 'l8',  from: 'n8',  to: 'n9',  color: '#ca8a04' },
+    { id: 'l9',  from: 'n1',  to: 'n10', color: '#2b2b2b' },
+    { id: 'l10', from: 'n10', to: 'n11', color: '#2b2b2b' },
+    { id: 'l11', from: 'n1',  to: 'n12', color: '#dc2626' },
+    { id: 'l12', from: 'n12', to: 'n13', color: '#dc2626' }
   ];
-  idCounter = 5;
+  strokes = [
+    { id: 's1', brush: 'marker', color: '#ca8a04',
+      points: [[cx - 95, cy + 62], [cx - 40, cy + 70], [cx + 25, cy + 60], [cx + 95, cy + 68]] },
+    { id: 's2', brush: 'highlighter', color: '#ca8a04',
+      points: [[cx + 95, cy + 355], [cx + 265, cy + 355]] }
+  ];
+  doodles = [
+    { id: 'dd1', kind: 'ellipse', x: cx + 445, y: cy - 185, w: 210, h: 120, color: '#dc2626', filled: false },
+    { id: 'dd2', kind: 'arrow',   x: cx + 345, y: cy + 350, w: -160, h: 45, color: '#ca8a04', filled: false }
+  ];
+  images = [
+    { id: 'im1', x: cx + 130, y: cy + 400, w: 165, h: 112, dataUrl: seedDemoImage(), isGif: false, playing: false }
+  ];
+  idCounter = 16;
 }
 
 /* =========================================================
